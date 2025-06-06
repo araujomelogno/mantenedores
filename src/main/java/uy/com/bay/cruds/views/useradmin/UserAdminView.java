@@ -106,11 +106,11 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 
 		// Bind fields. This is where you'd define e.g. validation rules
 		binder.forField(roles)
-			    .withConverter(role -> role != null ? java.util.Set.of(role) : java.util.Collections.emptySet(),
+			    .withConverter(role -> role != null ? java.util.Set.of(role) : java.util.Collections.<Role>emptySet(),
 			                   set -> set != null && !set.isEmpty() ? set.iterator().next() : null)
 			    .bind(User::getRoles, User::setRoles);
-
-		binder.bindInstanceFields(this);
+		binder.bind(userName, "username");
+		binder.bind(password, "password");
 
 		cancel.addClickListener(e -> {
 			clearForm();
