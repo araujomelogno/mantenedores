@@ -12,6 +12,7 @@ import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.combobox.MultiSelectComboBox;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.notification.Notification;
@@ -32,6 +33,7 @@ import com.vaadin.flow.spring.data.VaadinSpringDataHelpers;
 
 import jakarta.annotation.security.RolesAllowed;
 import uy.com.bay.cruds.data.User;
+import uy.com.bay.cruds.data.Role;
 import uy.com.bay.cruds.services.UserService;
 
 @PageTitle("Usuarios")
@@ -46,8 +48,9 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 
 	private final Grid<User> grid = new Grid<>(User.class, false);
 
-	private TextField userName;
-	PasswordField password;
+        private TextField userName;
+        PasswordField password;
+        private MultiSelectComboBox<Role> roles;
 
 	private final Button cancel = new Button("Cancel");
 	private final Button save = new Button("Save");
@@ -71,7 +74,9 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		add(splitLayout);
 
 		// Configure Grid
-		grid.addColumn("username").setAutoWidth(true);
+                grid.addColumn("username").setAutoWidth(true);
+                grid.addColumn(user -> user.getRoles() != null ? user.getRoles().toString() : "")
+                                .setHeader("Roles").setAutoWidth(true);
 
 		grid.setItems(query -> userService.list(VaadinSpringDataHelpers.toSpringPageRequest(query)).stream());
 		grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
@@ -147,10 +152,12 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		editorDiv.setClassName("editor");
 		editorLayoutDiv.add(editorDiv);
 
-		FormLayout formLayout = new FormLayout();
-		userName = new TextField("Usuario:");
-		password = new PasswordField();
-		formLayout.add(userName, password);
+                FormLayout formLayout = new FormLayout();
+                userName = new TextField("Usuario:");
+                password = new PasswordField();
+                roles = new MultiSelectComboBox<>("Rol");
+                roles.setItems(Role.values());
+                formLayout.add(userName, password, roles);
 
 		editorDiv.add(formLayout);
 		createButtonLayout(editorLayoutDiv);
