@@ -19,6 +19,7 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.textfield.PasswordField;
@@ -55,6 +56,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 
 	private final Button cancel = new Button("Cancel");
 	private final Button save = new Button("Save");
+	private Button addButton;
 
 	private final BeanValidationBinder<User> binder;
 
@@ -69,6 +71,8 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		roles = new ComboBox<>("Role");
 		roles.setItems(Role.values());
 		roles.setItemLabelGenerator(Role::name);
+		
+		addButton = new Button("Agregar");
 
 		// Create UI
 		SplitLayout splitLayout = new SplitLayout();
@@ -115,6 +119,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		cancel.addClickListener(e -> {
 			clearForm();
 			refreshGrid();
+			getUI().ifPresent(ui -> ui.navigate(UserAdminView.class));
 		});
 
 		save.addClickListener(e -> {
@@ -136,6 +141,27 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 			} catch (ValidationException validationException) {
 				Notification.show("Failed to update the data. Check again that all values are valid");
 			}
+		});
+		
+		addButton.addClickListener(e -> {
+		    User newUser = new User();
+		    // Opcional: Establecer valores por defecto aquí si es necesario
+		    // Ejemplo: newUser.setRoles(java.util.Set.of(Role.USER));
+		    // Ejemplo: newUser.setUsername("nuevo_usuario"); // Podría ser mejor dejarlo vacío para que el admin lo complete
+		
+		    try {
+		        User savedUser = userService.save(newUser); // Guardar para obtener un ID y persistirlo
+		        // Navegar a la vista de edición para este nuevo usuario.
+		        // Esto debería hacer que el grid lo muestre (implícitamente por el refresh que causa la navegación o el cambio de datos)
+		        // y que el formulario se popule con este nuevo usuario a través de la lógica de beforeEnter y el value change listener del grid.
+		        getUI().ifPresent(ui -> ui.navigate(String.format(SAMPLEPERSON_EDIT_ROUTE_TEMPLATE, savedUser.getId())));
+		        // No es necesario refrescar el grid explícitamente aquí si la navegación/selección lo maneja.
+		        // No es necesario limpiar el formulario explícitamente aquí, populateForm lo hará.
+		    } catch (Exception ex) {
+		        Notification.show("Error al crear el nuevo usuario: " + ex.getMessage(), 3000, Notification.Position.MIDDLE)
+		                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+		        ex.printStackTrace();
+		    }
 		});
 	}
 
@@ -189,8 +215,15 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 	private void createGridLayout(SplitLayout splitLayout) {
 		Div wrapper = new Div();
 		wrapper.setClassName("grid-wrapper");
-		splitLayout.addToPrimary(wrapper);
+		
+		HorizontalLayout topBar = new HorizontalLayout();
+		topBar.add(addButton);
+		topBar.setWidthFull();
+		topBar.setJustifyContentMode(JustifyContentMode.START);
+		wrapper.add(topBar);
+		
 		wrapper.add(grid);
+		splitLayout.addToPrimary(wrapper);
 	}
 
 	private void refreshGrid() {
