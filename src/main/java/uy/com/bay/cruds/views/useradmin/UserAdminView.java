@@ -1,6 +1,7 @@
 package uy.com.bay.cruds.views.useradmin;
 
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.vaadin.lineawesome.LineAwesomeIconUrl;
@@ -8,6 +9,7 @@ import org.vaadin.lineawesome.LineAwesomeIconUrl;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
@@ -31,6 +33,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.spring.data.VaadinSpringDataHelpers;
 
 import jakarta.annotation.security.RolesAllowed;
+import uy.com.bay.cruds.data.Role;
 import uy.com.bay.cruds.data.User;
 import uy.com.bay.cruds.services.UserService;
 
@@ -48,6 +51,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 
 	private TextField userName;
 	PasswordField password;
+	private ComboBox<Role> roles;
 
 	private final Button cancel = new Button("Cancel");
 	private final Button save = new Button("Save");
@@ -62,6 +66,10 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		this.userService = userService;
 		addClassNames("useradmin-view");
 
+		roles = new ComboBox<>("Role");
+		roles.setItems(Role.values());
+		roles.setItemLabelGenerator(Role::name);
+
 		// Create UI
 		SplitLayout splitLayout = new SplitLayout();
 
@@ -72,6 +80,13 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 
 		// Configure Grid
 		grid.addColumn("username").setAutoWidth(true);
+		grid.addColumn(user -> {
+		    Set<Role> userRoles = user.getRoles();
+		    if (userRoles != null && !userRoles.isEmpty()) {
+		        return userRoles.iterator().next().name();
+		    }
+		    return "";
+		}).setHeader("Role").setAutoWidth(true);
 
 		grid.setItems(query -> userService.list(VaadinSpringDataHelpers.toSpringPageRequest(query)).stream());
 		grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
@@ -90,6 +105,10 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		binder = new BeanValidationBinder<>(User.class);
 
 		// Bind fields. This is where you'd define e.g. validation rules
+		binder.forField(roles)
+			    .withConverter(role -> role != null ? java.util.Set.of(role) : java.util.Collections.emptySet(),
+			                   set -> set != null && !set.isEmpty() ? set.iterator().next() : null)
+			    .bind(User::getRoles, User::setRoles);
 
 		binder.bindInstanceFields(this);
 
@@ -150,7 +169,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		FormLayout formLayout = new FormLayout();
 		userName = new TextField("Usuario:");
 		password = new PasswordField();
-		formLayout.add(userName, password);
+		formLayout.add(userName, password, roles);
 
 		editorDiv.add(formLayout);
 		createButtonLayout(editorLayoutDiv);
