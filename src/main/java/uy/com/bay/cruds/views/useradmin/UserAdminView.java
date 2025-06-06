@@ -109,8 +109,8 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 			    .withConverter(role -> role != null ? java.util.Set.of(role) : java.util.Collections.emptySet(),
 			                   set -> set != null && !set.isEmpty() ? set.iterator().next() : null)
 			    .bind(User::getRoles, User::setRoles);
-
-		binder.bindInstanceFields(this);
+		binder.bind(userName, "username");
+		binder.bind(password, "password");
 
 		cancel.addClickListener(e -> {
 			clearForm();
