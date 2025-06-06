@@ -2,6 +2,7 @@ package uy.com.bay.cruds.views.useradmin;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.vaadin.lineawesome.LineAwesomeIconUrl;
@@ -53,6 +54,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 	private TextField userName;
 	PasswordField password;
 	private ComboBox<Role> roles;
+	private TextField usernameFilterField;
 
 	private final Button cancel = new Button("Cancel");
 	private final Button save = new Button("Save");
@@ -77,22 +79,37 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		// Create UI
 		SplitLayout splitLayout = new SplitLayout();
 
+		usernameFilterField = new TextField();
+        usernameFilterField.setPlaceholder("Filtrar por usuario...");
+        usernameFilterField.setClearButtonVisible(true);
+        usernameFilterField.addValueChangeListener(e -> grid.getDataProvider().refreshAll());
+
 		createGridLayout(splitLayout);
 		createEditorLayout(splitLayout);
 
 		add(splitLayout);
 
 		// Configure Grid
-		grid.addColumn("username").setAutoWidth(true);
+		grid.addColumn("username").setHeader("Usuario").setAutoWidth(true);
 		grid.addColumn(user -> {
 		    Set<Role> userRoles = user.getRoles();
 		    if (userRoles != null && !userRoles.isEmpty()) {
 		        return userRoles.iterator().next().name();
 		    }
 		    return "";
-		}).setHeader("Role").setAutoWidth(true);
+		}).setHeader("Rol").setAutoWidth(true);
 
-		grid.setItems(query -> userService.list(VaadinSpringDataHelpers.toSpringPageRequest(query)).stream());
+		grid.setItems(query -> {
+            String filterText = usernameFilterField.getValue() != null ?
+                                usernameFilterField.getValue().trim().toLowerCase() : ""; // Usar "" si es null
+            java.util.stream.Stream<User> userStream = userService.list(VaadinSpringDataHelpers.toSpringPageRequest(query)).stream();
+            if (!filterText.isEmpty()) {
+                userStream = userStream.filter(user ->
+                    user.getUsername() != null && user.getUsername().toLowerCase().contains(filterText)
+                );
+            }
+            return userStream;
+        });
 		grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
 
 		// when a row is selected or deselected, populate form
@@ -217,7 +234,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		wrapper.setClassName("grid-wrapper");
 		
 		HorizontalLayout topBar = new HorizontalLayout();
-		topBar.add(addButton);
+		topBar.add(usernameFilterField, addButton);
 		topBar.setWidthFull();
 		topBar.setJustifyContentMode(JustifyContentMode.START);
 		wrapper.add(topBar);
