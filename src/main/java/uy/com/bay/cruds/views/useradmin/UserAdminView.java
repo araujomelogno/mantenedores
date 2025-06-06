@@ -168,7 +168,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 
 		FormLayout formLayout = new FormLayout();
 		userName = new TextField("Usuario:");
-		password = new PasswordField();
+		password = new PasswordField("Password:");
 		formLayout.add(userName, password, roles);
 
 		editorDiv.add(formLayout);
