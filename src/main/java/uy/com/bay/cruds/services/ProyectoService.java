@@ -1,5 +1,6 @@
 package uy.com.bay.cruds.services;
 
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -41,4 +42,7 @@ public class ProyectoService {
         return (int) repository.count();
     }
 
+    public List<Proyecto> findAll() {
+        return repository.findAll();
+    }
 }
