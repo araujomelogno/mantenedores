@@ -76,45 +76,11 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
         SplitLayout splitLayout = new SplitLayout();
 
         addButton = new Button("Agregar Proyecto");
-        addButton.addClickListener(e -> {
-            clearForm();
-            this.proyecto = new Proyecto();
-            binder.readBean(this.proyecto);
-            if (this.editorLayoutDiv != null) {
-                 this.editorLayoutDiv.setVisible(true);
-            }
-            if (this.deleteButton != null) {
-                this.deleteButton.setEnabled(false);
-            }
-        });
-
+        
         deleteButton = new Button("Borrar");
         deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
         deleteButton.setEnabled(false);
-
-        deleteButton.addClickListener(e -> {
-            if (this.proyecto != null && this.proyecto.getId() != null) {
-                ConfirmDialog dialog = new ConfirmDialog(); // Use imported class
-                dialog.setHeader("Confirmar Borrado");
-                dialog.setText("¿Estás seguro de que quieres borrar este proyecto? Esta acción no se puede deshacer.");
-                dialog.setCancelable(true);
-                dialog.setConfirmText("Borrar");
-                dialog.setConfirmButtonTheme("error primary");
-
-                dialog.addConfirmListener(event -> {
-                    try {
-                        proyectoService.delete(this.proyecto.getId());
-                        clearForm();
-                        refreshGrid();
-                        Notification.show("Proyecto borrado exitosamente.", 3000, Notification.Position.BOTTOM_START);
-                    } catch (Exception ex) {
-                        Notification.show("Error al borrar el proyecto: " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
-                                .addThemeVariants(NotificationVariant.LUMO_ERROR);
-                    }
-                });
-                dialog.open();
-            }
-        });
+ 
 
         nameFilter = new TextField();
         nameFilter.setPlaceholder("Nombre...");

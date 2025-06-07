@@ -71,46 +71,12 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
 
         addButton = new Button("Agregar Encuestador");
         // addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY); // Estilo opcional
-        addButton.addClickListener(e -> {
-            clearForm(); // Esto llamará a populateForm(null), ocultando el editor.
-            this.encuestador = new Encuestador();
-            binder.readBean(this.encuestador); // Prepara el formulario para el nuevo encuestador.
-                                             // binder.readBean no debe afectar la visibilidad.
-            if (this.editorLayoutDiv != null) {
-                 this.editorLayoutDiv.setVisible(true); // Mostrar explícitamente el editor para la nueva entidad.
-            }
-            if (this.deleteButton != null) {
-                this.deleteButton.setEnabled(false);
-            }
-        });
-
+         
         deleteButton = new Button("Borrar");
         deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
         deleteButton.setEnabled(false);
 
-        deleteButton.addClickListener(e -> {
-            if (this.encuestador != null && this.encuestador.getId() != null) {
-                ConfirmDialog dialog = new ConfirmDialog(); // Use imported class
-                dialog.setHeader("Confirmar Borrado");
-                dialog.setText("¿Estás seguro de que quieres borrar este encuestador? Esta acción no se puede deshacer.");
-                dialog.setCancelable(true);
-                dialog.setConfirmText("Borrar");
-                dialog.setConfirmButtonTheme("error primary");
-
-                dialog.addConfirmListener(event -> {
-                    try {
-                        encuestadorService.delete(this.encuestador.getId());
-                        clearForm();
-                        refreshGrid();
-                        Notification.show("Encuestador borrado exitosamente.", 3000, Notification.Position.BOTTOM_START);
-                    } catch (Exception ex) {
-                        Notification.show("Error al borrar el encuestador: " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
-                                .addThemeVariants(NotificationVariant.LUMO_ERROR);
-                    }
-                });
-                dialog.open();
-            }
-        });
+         
 
         firstNameFilter = new TextField();
         firstNameFilter.setPlaceholder("Nombre...");
