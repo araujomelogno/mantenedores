@@ -24,6 +24,7 @@ import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.spring.data.VaadinSpringDataHelpers;
 import jakarta.annotation.security.PermitAll;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.vaadin.lineawesome.LineAwesomeIconUrl;
 import uy.com.bay.cruds.data.Proyecto;
@@ -47,6 +48,13 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
     private TextField odooId;
     private TextField obs;
 
+    private Button addButton;
+    private TextField nameFilter;
+    private TextField alchemerIdFilter;
+    private TextField doobloIdFilter;
+    private TextField odooIdFilter;
+    private TextField obsFilter;
+
     private final Button cancel = new Button("Cancel");
     private final Button save = new Button("Save");
 
@@ -63,18 +71,76 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
         // Create UI
         SplitLayout splitLayout = new SplitLayout();
 
+        addButton = new Button("Agregar Proyecto");
+        addButton.addClickListener(e -> {
+            clearForm();
+            this.proyecto = new Proyecto();
+            binder.readBean(this.proyecto);
+        });
+
+        nameFilter = new TextField();
+        nameFilter.setPlaceholder("Nombre...");
+        nameFilter.setClearButtonVisible(true);
+        nameFilter.addValueChangeListener(e -> refreshGrid());
+
+        alchemerIdFilter = new TextField();
+        alchemerIdFilter.setPlaceholder("Alchemer ID...");
+        alchemerIdFilter.setClearButtonVisible(true);
+        alchemerIdFilter.addValueChangeListener(e -> refreshGrid());
+
+        doobloIdFilter = new TextField();
+        doobloIdFilter.setPlaceholder("Dooblo ID...");
+        doobloIdFilter.setClearButtonVisible(true);
+        doobloIdFilter.addValueChangeListener(e -> refreshGrid());
+
+        odooIdFilter = new TextField();
+        odooIdFilter.setPlaceholder("Odoo ID...");
+        odooIdFilter.setClearButtonVisible(true);
+        odooIdFilter.addValueChangeListener(e -> refreshGrid());
+
+        obsFilter = new TextField();
+        obsFilter.setPlaceholder("Obs...");
+        obsFilter.setClearButtonVisible(true);
+        obsFilter.addValueChangeListener(e -> refreshGrid());
+
         createGridLayout(splitLayout);
         createEditorLayout(splitLayout);
 
         add(splitLayout);
 
         // Configure Grid
-        grid.addColumn("name").setAutoWidth(true);
-        grid.addColumn("alchemerId").setAutoWidth(true);
-        grid.addColumn("doobloId").setAutoWidth(true);
-        grid.addColumn("odooId").setAutoWidth(true);
-        grid.addColumn("obs").setAutoWidth(true);
-        grid.setItems(query -> proyectoService.list(VaadinSpringDataHelpers.toSpringPageRequest(query)).stream());
+        grid.addColumn("name").setHeader("Nombre").setAutoWidth(true);
+        grid.addColumn("alchemerId").setHeader("Alchemer ID").setAutoWidth(true);
+        grid.addColumn("doobloId").setHeader("Dooblo ID").setAutoWidth(true);
+        grid.addColumn("odooId").setHeader("Odoo ID").setAutoWidth(true);
+        grid.addColumn("obs").setHeader("Observaciones").setAutoWidth(true);
+
+        grid.setItems(query -> {
+            String nameVal = nameFilter.getValue() != null ? nameFilter.getValue().trim().toLowerCase() : "";
+            String alchemerVal = alchemerIdFilter.getValue() != null ? alchemerIdFilter.getValue().trim().toLowerCase() : "";
+            String doobloVal = doobloIdFilter.getValue() != null ? doobloIdFilter.getValue().trim().toLowerCase() : "";
+            String odooVal = odooIdFilter.getValue() != null ? odooIdFilter.getValue().trim().toLowerCase() : "";
+            String obsVal = obsFilter.getValue() != null ? obsFilter.getValue().trim().toLowerCase() : "";
+
+            java.util.stream.Stream<Proyecto> stream = proyectoService.list(VaadinSpringDataHelpers.toSpringPageRequest(query)).stream();
+
+            if (!nameVal.isEmpty()) {
+                stream = stream.filter(p -> p.getName() != null && p.getName().toLowerCase().contains(nameVal));
+            }
+            if (!alchemerVal.isEmpty()) {
+                stream = stream.filter(p -> p.getAlchemerId() != null && p.getAlchemerId().toLowerCase().contains(alchemerVal));
+            }
+            if (!doobloVal.isEmpty()) {
+                stream = stream.filter(p -> p.getDoobloId() != null && p.getDoobloId().toLowerCase().contains(doobloVal));
+            }
+            if (!odooVal.isEmpty()) {
+                stream = stream.filter(p -> p.getOdooId() != null && p.getOdooId().toLowerCase().contains(odooVal));
+            }
+            if (!obsVal.isEmpty()) {
+                stream = stream.filter(p -> p.getObs() != null && p.getObs().toLowerCase().contains(obsVal));
+            }
+            return stream;
+        });
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
 
         // when a row is selected or deselected, populate form
@@ -173,8 +239,15 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
     private void createGridLayout(SplitLayout splitLayout) {
         Div wrapper = new Div();
         wrapper.setClassName("grid-wrapper");
-        splitLayout.addToPrimary(wrapper);
+
+        HorizontalLayout topBar = new HorizontalLayout();
+        topBar.setWidthFull();
+        // topBar.setSpacing(true); // Opcional
+        topBar.add(nameFilter, alchemerIdFilter, doobloIdFilter, odooIdFilter, obsFilter, addButton);
+
+        wrapper.add(topBar); // Añadir topBar al wrapper ANTES del grid
         wrapper.add(grid);
+        splitLayout.addToPrimary(wrapper);
     }
 
     private void refreshGrid() {

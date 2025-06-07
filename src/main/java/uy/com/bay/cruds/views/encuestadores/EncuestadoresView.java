@@ -23,6 +23,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.spring.data.VaadinSpringDataHelpers;
 import jakarta.annotation.security.PermitAll;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.vaadin.lineawesome.LineAwesomeIconUrl;
 import uy.com.bay.cruds.data.Encuestador;
@@ -43,6 +44,11 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
     private TextField lastName;
     private TextField ci;
 
+    private Button addButton;
+    private TextField firstNameFilter;
+    private TextField lastNameFilter;
+    private TextField ciFilter;
+
     private final Button cancel = new Button("Cancel");
     private final Button save = new Button("Save");
 
@@ -59,16 +65,61 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
         // Create UI
         SplitLayout splitLayout = new SplitLayout();
 
+        addButton = new Button("Agregar Encuestador");
+        // addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY); // Estilo opcional
+        addButton.addClickListener(e -> {
+            clearForm();
+            this.encuestador = new Encuestador();
+            binder.readBean(this.encuestador);
+            // Opcionalmente, forzar que el panel de edición sea visible y tenga el foco
+            // UI.getCurrent().navigate(EncuestadoresView.class); // Si quieres limpiar la URL también
+        });
+
+        firstNameFilter = new TextField();
+        firstNameFilter.setPlaceholder("Nombre...");
+        firstNameFilter.setClearButtonVisible(true);
+        firstNameFilter.addValueChangeListener(e -> refreshGrid()); // Asume que refreshGrid() llama a dataProvider.refreshAll()
+
+        lastNameFilter = new TextField();
+        lastNameFilter.setPlaceholder("Apellido...");
+        lastNameFilter.setClearButtonVisible(true);
+        lastNameFilter.addValueChangeListener(e -> refreshGrid());
+
+        ciFilter = new TextField();
+        ciFilter.setPlaceholder("CI...");
+        ciFilter.setClearButtonVisible(true);
+        ciFilter.addValueChangeListener(e -> refreshGrid());
+
         createGridLayout(splitLayout);
         createEditorLayout(splitLayout);
 
         add(splitLayout);
 
         // Configure Grid
-        grid.addColumn("firstName").setAutoWidth(true);
-        grid.addColumn("lastName").setAutoWidth(true);
-        grid.addColumn("ci").setAutoWidth(true);
-        grid.setItems(query -> encuestadorService.list(VaadinSpringDataHelpers.toSpringPageRequest(query)).stream());
+        grid.addColumn("firstName").setHeader("Nombre").setAutoWidth(true);
+        grid.addColumn("lastName").setHeader("Apellido").setAutoWidth(true);
+        grid.addColumn("ci").setHeader("CI").setAutoWidth(true);
+
+        grid.setItems(query -> {
+            String fnameFilter = firstNameFilter.getValue() != null ? firstNameFilter.getValue().trim().toLowerCase() : "";
+            String lnameFilter = lastNameFilter.getValue() != null ? lastNameFilter.getValue().trim().toLowerCase() : "";
+            String ciValFilter = ciFilter.getValue() != null ? ciFilter.getValue().trim().toLowerCase() : "";
+
+            // Obtener el stream del servicio
+            java.util.stream.Stream<Encuestador> stream = encuestadorService.list(VaadinSpringDataHelpers.toSpringPageRequest(query)).stream();
+
+            // Aplicar filtros si hay texto en los campos de filtro
+            if (!fnameFilter.isEmpty()) {
+                stream = stream.filter(enc -> enc.getFirstName() != null && enc.getFirstName().toLowerCase().contains(fnameFilter));
+            }
+            if (!lnameFilter.isEmpty()) {
+                stream = stream.filter(enc -> enc.getLastName() != null && enc.getLastName().toLowerCase().contains(lnameFilter));
+            }
+            if (!ciValFilter.isEmpty()) {
+                stream = stream.filter(enc -> enc.getCi() != null && enc.getCi().toLowerCase().contains(ciValFilter));
+            }
+            return stream;
+        });
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
 
         // when a row is selected or deselected, populate form
@@ -166,8 +217,21 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
     private void createGridLayout(SplitLayout splitLayout) {
         Div wrapper = new Div();
         wrapper.setClassName("grid-wrapper");
-        splitLayout.addToPrimary(wrapper);
+
+        HorizontalLayout topBar = new HorizontalLayout();
+        topBar.setWidthFull();
+        // topBar.setSpacing(true); // Opcional para espaciado
+        topBar.add(firstNameFilter, lastNameFilter, ciFilter, addButton);
+        // Para alinear el botón a la derecha (más avanzado, podría requerir un Div espaciador o CSS)
+        // Ejemplo simple para empujar el botón:
+        // Div spacer = new Div();
+        // spacer.getStyle().set("flex-grow", "1");
+        // topBar.add(firstNameFilter, lastNameFilter, ciFilter, spacer, addButton);
+        // O simplemente dejarlos en orden.
+
+        wrapper.add(topBar); // Añadir topBar al wrapper ANTES del grid
         wrapper.add(grid);
+        splitLayout.addToPrimary(wrapper);
     }
 
     private void refreshGrid() {
