@@ -60,6 +60,7 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
 
     public EncuestadoresView(EncuestadorService encuestadorService) {
         this.encuestadorService = encuestadorService;
+        this.binder = new BeanValidationBinder<>(Encuestador.class); // Moved initialization here
         addClassNames("encuestadores-view");
 
         // Create UI
@@ -133,7 +134,7 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
         });
 
         // Configure Form
-        binder = new BeanValidationBinder<>(Encuestador.class);
+        // binder = new BeanValidationBinder<>(Encuestador.class); // Removed from here
 
         // Bind fields. This is where you'd define e.g. validation rules
 
