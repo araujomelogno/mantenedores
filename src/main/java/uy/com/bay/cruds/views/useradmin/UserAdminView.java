@@ -88,7 +88,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
         usernameFilterField.setPlaceholder("Filtrar por usuario...");
         usernameFilterField.setClearButtonVisible(true);
         usernameFilterField.addValueChangeListener(e -> grid.getDataProvider().refreshAll());
-
+ 
         // Initialize deleteButton before layout creation
         deleteButton = new Button("Borrar");
         deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
@@ -96,7 +96,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 
         // Setup listeners before layout creation
         setupButtonListeners();
-
+ 
 		createGridLayout(splitLayout);
 		createEditorLayout(splitLayout);
 
@@ -149,6 +149,34 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 	    deleteButton.addClickListener(e -> {
             if (this.user != null && this.user.getId() != null) {
                 ConfirmDialog dialog = new ConfirmDialog();
+                dialog.setHeader("Confirmar Borrado");
+                dialog.setText("¿Estás seguro de que quieres borrar este usuario? Esta acción no se puede deshacer.");
+                dialog.setCancelable(true);
+                dialog.setConfirmText("Borrar");
+                dialog.setConfirmButtonTheme("error primary");
+
+                dialog.addConfirmListener(event -> {
+                    try {
+                        userService.delete(this.user.getId());
+                        clearForm();
+                        refreshGrid();
+                        Notification.show("Usuario borrado exitosamente.", 3000, Notification.Position.BOTTOM_START);
+                    } catch (Exception ex) {
+                        Notification.show("Error al borrar el usuario: " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
+                                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                    }
+                });
+                dialog.open();
+            }
+        });
+
+		deleteButton = new Button("Borrar");
+        deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        deleteButton.setEnabled(false);
+
+        deleteButton.addClickListener(e -> {
+            if (this.user != null && this.user.getId() != null) {
+                ConfirmDialog dialog = new ConfirmDialog(); // Use imported class
                 dialog.setHeader("Confirmar Borrado");
                 dialog.setText("¿Estás seguro de que quieres borrar este usuario? Esta acción no se puede deshacer.");
                 dialog.setCancelable(true);

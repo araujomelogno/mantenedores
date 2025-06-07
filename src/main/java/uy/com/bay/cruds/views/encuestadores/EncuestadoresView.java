@@ -126,9 +126,9 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
         ciFilter.setPlaceholder("CI...");
         ciFilter.setClearButtonVisible(true);
         ciFilter.addValueChangeListener(e -> refreshGrid());
-
+ 
         setupButtonListeners(); // Call to new method
-
+ 
         createGridLayout(splitLayout);
         createEditorLayout(splitLayout);
 

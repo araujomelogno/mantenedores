@@ -140,9 +140,9 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
         obsFilter.setPlaceholder("Obs...");
         obsFilter.setClearButtonVisible(true);
         obsFilter.addValueChangeListener(e -> refreshGrid());
-
+ 
         setupButtonListeners(); // Call to new method
-
+ 
         createGridLayout(splitLayout);
         createEditorLayout(splitLayout);
 
