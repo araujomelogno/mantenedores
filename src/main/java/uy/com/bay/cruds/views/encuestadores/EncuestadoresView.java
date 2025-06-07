@@ -8,9 +8,11 @@ import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -70,7 +72,7 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
         SplitLayout splitLayout = new SplitLayout();
 
         addButton = new Button("Agregar Encuestador");
-        // addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY); // Estilo opcional
+        addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
          
         deleteButton = new Button("Borrar");
         deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
@@ -81,16 +83,19 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
         firstNameFilter = new TextField();
         firstNameFilter.setPlaceholder("Nombre...");
         firstNameFilter.setClearButtonVisible(true);
+        firstNameFilter.setWidth("100%");
         firstNameFilter.addValueChangeListener(e -> refreshGrid()); // Asume que refreshGrid() llama a dataProvider.refreshAll()
 
         lastNameFilter = new TextField();
         lastNameFilter.setPlaceholder("Apellido...");
         lastNameFilter.setClearButtonVisible(true);
+        lastNameFilter.setWidth("100%");
         lastNameFilter.addValueChangeListener(e -> refreshGrid());
 
         ciFilter = new TextField();
         ciFilter.setPlaceholder("CI...");
         ciFilter.setClearButtonVisible(true);
+        ciFilter.setWidth("100%");
         ciFilter.addValueChangeListener(e -> refreshGrid());
  
         setupButtonListeners(); // Call to new method
@@ -261,19 +266,22 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
     private void createGridLayout(SplitLayout splitLayout) {
         Div wrapper = new Div();
         wrapper.setClassName("grid-wrapper");
+        wrapper.setWidthFull(); // Ensure wrapper takes full width
 
-        HorizontalLayout topBar = new HorizontalLayout();
-        topBar.setWidthFull();
-        // topBar.setSpacing(true); // Opcional para espaciado
-        topBar.add(firstNameFilter, lastNameFilter, ciFilter, addButton);
-        // Para alinear el botón a la derecha (más avanzado, podría requerir un Div espaciador o CSS)
-        // Ejemplo simple para empujar el botón:
-        // Div spacer = new Div();
-        // spacer.getStyle().set("flex-grow", "1");
-        // topBar.add(firstNameFilter, lastNameFilter, ciFilter, spacer, addButton);
-        // O simplemente dejarlos en orden.
+        // Title Layout
+        H2 title = new H2("Encuestadores");
+        HorizontalLayout titleLayout = new HorizontalLayout(title, addButton);
+        titleLayout.setWidthFull();
+        titleLayout.setAlignItems(Alignment.BASELINE); // Align items nicely
+        titleLayout.setFlexGrow(1, title); // Title takes available space
 
-        wrapper.add(topBar); // Añadir topBar al wrapper ANTES del grid
+        // Filter Layout
+        HorizontalLayout filterLayout = new HorizontalLayout();
+        filterLayout.setWidthFull();
+        filterLayout.add(firstNameFilter, lastNameFilter, ciFilter);
+
+        wrapper.add(titleLayout);
+        wrapper.add(filterLayout);
         wrapper.add(grid);
         splitLayout.addToPrimary(wrapper);
     }
