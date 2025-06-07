@@ -63,6 +63,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 	private final BeanValidationBinder<User> binder;
 
 	private User user;
+	private Div editorLayoutDiv; // Added field declaration
 
 	private final UserService userService;
 
@@ -202,8 +203,8 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 	}
 
 	private void createEditorLayout(SplitLayout splitLayout) {
-		Div editorLayoutDiv = new Div();
-		editorLayoutDiv.setClassName("editor-layout");
+		this.editorLayoutDiv = new Div(); // Changed to use the class field
+		this.editorLayoutDiv.setClassName("editor-layout");
 
 		Div editorDiv = new Div();
 		editorDiv.setClassName("editor");
@@ -215,9 +216,10 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		formLayout.add(userName, password, roles);
 
 		editorDiv.add(formLayout);
-		createButtonLayout(editorLayoutDiv);
+		createButtonLayout(this.editorLayoutDiv);
 
-		splitLayout.addToSecondary(editorLayoutDiv);
+		splitLayout.addToSecondary(this.editorLayoutDiv);
+		this.editorLayoutDiv.setVisible(false); // Set initial visibility
 	}
 
 	private void createButtonLayout(Div editorLayoutDiv) {
@@ -255,6 +257,8 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 	private void populateForm(User value) {
 		this.user = value;
 		binder.readBean(this.user);
-
+		if (this.editorLayoutDiv != null) { // Check if editorLayoutDiv is initialized
+            this.editorLayoutDiv.setVisible(value != null);
+        }
 	}
 }
