@@ -16,10 +16,12 @@ import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
@@ -79,6 +81,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		roles.setItemLabelGenerator(Role::name);
 
 		addButton = new Button("Agregar");
+		addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
 		// Create UI
 		SplitLayout splitLayout = new SplitLayout();
@@ -86,6 +89,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		usernameFilterField = new TextField();
 		usernameFilterField.setPlaceholder("Filtrar por usuario...");
 		usernameFilterField.setClearButtonVisible(true);
+		usernameFilterField.setWidth("100%");
 		usernameFilterField.addValueChangeListener(e -> grid.getDataProvider().refreshAll());
 
 		// Initialize deleteButton before layout creation
@@ -278,13 +282,22 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 	private void createGridLayout(SplitLayout splitLayout) {
 		Div wrapper = new Div();
 		wrapper.setClassName("grid-wrapper");
+		wrapper.setWidthFull(); // Ensure wrapper takes full width
 
-		HorizontalLayout topBar = new HorizontalLayout();
-		topBar.add(usernameFilterField, addButton);
-		topBar.setWidthFull();
-		topBar.setJustifyContentMode(JustifyContentMode.START);
-		wrapper.add(topBar);
+		// Title Layout
+		H2 title = new H2("Usuarios");
+		HorizontalLayout titleLayout = new HorizontalLayout(title, addButton);
+		titleLayout.setWidthFull();
+		titleLayout.setAlignItems(Alignment.BASELINE); // Align items nicely
+		titleLayout.setFlexGrow(1, title); // Title takes available space
 
+		// Filter Layout
+		HorizontalLayout filterLayout = new HorizontalLayout();
+		filterLayout.setWidthFull();
+		filterLayout.add(usernameFilterField);
+
+		wrapper.add(titleLayout);
+		wrapper.add(filterLayout);
 		wrapper.add(grid);
 		splitLayout.addToPrimary(wrapper);
 	}
