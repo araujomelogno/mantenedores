@@ -55,6 +55,7 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
     private final BeanValidationBinder<Encuestador> binder;
 
     private Encuestador encuestador;
+    private Div editorLayoutDiv; // Added field declaration
 
     private final EncuestadorService encuestadorService;
 
@@ -69,11 +70,13 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
         addButton = new Button("Agregar Encuestador");
         // addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY); // Estilo opcional
         addButton.addClickListener(e -> {
-            clearForm();
+            clearForm(); // Esto llamará a populateForm(null), ocultando el editor.
             this.encuestador = new Encuestador();
-            binder.readBean(this.encuestador);
-            // Opcionalmente, forzar que el panel de edición sea visible y tenga el foco
-            // UI.getCurrent().navigate(EncuestadoresView.class); // Si quieres limpiar la URL también
+            binder.readBean(this.encuestador); // Prepara el formulario para el nuevo encuestador.
+                                             // binder.readBean no debe afectar la visibilidad.
+            if (this.editorLayoutDiv != null) {
+                 this.editorLayoutDiv.setVisible(true); // Mostrar explícitamente el editor para la nueva entidad.
+            }
         });
 
         firstNameFilter = new TextField();
@@ -187,8 +190,8 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
     }
 
     private void createEditorLayout(SplitLayout splitLayout) {
-        Div editorLayoutDiv = new Div();
-        editorLayoutDiv.setClassName("editor-layout");
+        this.editorLayoutDiv = new Div(); // Changed to use the class field
+        this.editorLayoutDiv.setClassName("editor-layout");
 
         Div editorDiv = new Div();
         editorDiv.setClassName("editor");
@@ -201,9 +204,10 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
         formLayout.add(firstName, lastName, ci);
 
         editorDiv.add(formLayout);
-        createButtonLayout(editorLayoutDiv);
+        createButtonLayout(this.editorLayoutDiv);
 
-        splitLayout.addToSecondary(editorLayoutDiv);
+        splitLayout.addToSecondary(this.editorLayoutDiv);
+        this.editorLayoutDiv.setVisible(false); // Set initial visibility
     }
 
     private void createButtonLayout(Div editorLayoutDiv) {
@@ -247,6 +251,8 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
     private void populateForm(Encuestador value) {
         this.encuestador = value;
         binder.readBean(this.encuestador);
-
+        if (this.editorLayoutDiv != null) {
+            this.editorLayoutDiv.setVisible(value != null);
+        }
     }
 }

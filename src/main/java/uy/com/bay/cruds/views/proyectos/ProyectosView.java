@@ -61,6 +61,7 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
     private final BeanValidationBinder<Proyecto> binder;
 
     private Proyecto proyecto;
+    private Div editorLayoutDiv; // Added field declaration
 
     private final ProyectoService proyectoService;
 
@@ -77,6 +78,9 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
             clearForm();
             this.proyecto = new Proyecto();
             binder.readBean(this.proyecto);
+            if (this.editorLayoutDiv != null) {
+                 this.editorLayoutDiv.setVisible(true);
+            }
         });
 
         nameFilter = new TextField();
@@ -207,8 +211,8 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
     }
 
     private void createEditorLayout(SplitLayout splitLayout) {
-        Div editorLayoutDiv = new Div();
-        editorLayoutDiv.setClassName("editor-layout");
+        this.editorLayoutDiv = new Div(); // Changed to use the class field
+        this.editorLayoutDiv.setClassName("editor-layout");
 
         Div editorDiv = new Div();
         editorDiv.setClassName("editor");
@@ -223,9 +227,10 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
         formLayout.add(name, alchemerId, doobloId, odooId, obs);
 
         editorDiv.add(formLayout);
-        createButtonLayout(editorLayoutDiv);
+        createButtonLayout(this.editorLayoutDiv);
 
-        splitLayout.addToSecondary(editorLayoutDiv);
+        splitLayout.addToSecondary(this.editorLayoutDiv);
+        this.editorLayoutDiv.setVisible(false); // Set initial visibility
     }
 
     private void createButtonLayout(Div editorLayoutDiv) {
@@ -263,6 +268,8 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
     private void populateForm(Proyecto value) {
         this.proyecto = value;
         binder.readBean(this.proyecto);
-
+        if (this.editorLayoutDiv != null) {
+            this.editorLayoutDiv.setVisible(value != null);
+        }
     }
 }
