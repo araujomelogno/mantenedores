@@ -66,6 +66,7 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
 
     public ProyectosView(ProyectoService proyectoService) {
         this.proyectoService = proyectoService;
+        this.binder = new BeanValidationBinder<>(Proyecto.class); // Moved initialization here
         addClassNames("proyectos-view");
 
         // Create UI
@@ -154,7 +155,7 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
         });
 
         // Configure Form
-        binder = new BeanValidationBinder<>(Proyecto.class);
+        // binder = new BeanValidationBinder<>(Proyecto.class); // Removed from here
 
         // Bind fields. This is where you'd define e.g. validation rules
 
