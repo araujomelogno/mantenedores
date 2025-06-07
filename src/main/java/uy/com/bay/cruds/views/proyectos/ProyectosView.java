@@ -3,6 +3,7 @@ package uy.com.bay.cruds.views.proyectos;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog; // Added import
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
@@ -57,6 +58,7 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
 
     private final Button cancel = new Button("Cancel");
     private final Button save = new Button("Save");
+    private Button deleteButton; // Added deleteButton declaration
 
     private final BeanValidationBinder<Proyecto> binder;
 
@@ -80,6 +82,37 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
             binder.readBean(this.proyecto);
             if (this.editorLayoutDiv != null) {
                  this.editorLayoutDiv.setVisible(true);
+            }
+            if (this.deleteButton != null) {
+                this.deleteButton.setEnabled(false);
+            }
+        });
+
+        deleteButton = new Button("Borrar");
+        deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        deleteButton.setEnabled(false);
+
+        deleteButton.addClickListener(e -> {
+            if (this.proyecto != null && this.proyecto.getId() != null) {
+                ConfirmDialog dialog = new ConfirmDialog(); // Use imported class
+                dialog.setHeader("Confirmar Borrado");
+                dialog.setText("¿Estás seguro de que quieres borrar este proyecto? Esta acción no se puede deshacer.");
+                dialog.setCancelable(true);
+                dialog.setConfirmText("Borrar");
+                dialog.setConfirmButtonTheme("error primary");
+
+                dialog.addConfirmListener(event -> {
+                    try {
+                        proyectoService.delete(this.proyecto.getId());
+                        clearForm();
+                        refreshGrid();
+                        Notification.show("Proyecto borrado exitosamente.", 3000, Notification.Position.BOTTOM_START);
+                    } catch (Exception ex) {
+                        Notification.show("Error al borrar el proyecto: " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
+                                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                    }
+                });
+                dialog.open();
             }
         });
 
@@ -238,7 +271,7 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
         buttonLayout.setClassName("button-layout");
         cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        buttonLayout.add(save, cancel);
+		buttonLayout.add(save, deleteButton, cancel);
         editorLayoutDiv.add(buttonLayout);
     }
 
@@ -270,6 +303,9 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
         binder.readBean(this.proyecto);
         if (this.editorLayoutDiv != null) {
             this.editorLayoutDiv.setVisible(value != null);
+        }
+        if (this.deleteButton != null) {
+            this.deleteButton.setEnabled(value != null && value.getId() != null);
         }
     }
 }
