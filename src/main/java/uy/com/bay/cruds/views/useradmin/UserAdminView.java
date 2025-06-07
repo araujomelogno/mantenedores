@@ -71,6 +71,8 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 
 	public UserAdminView(UserService userService) {
 		this.userService = userService;
+		// Initialize binder early
+        this.binder = new BeanValidationBinder<>(User.class);
 		addClassNames("useradmin-view");
 
 		roles = new ComboBox<>("Role");
@@ -86,7 +88,15 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
         usernameFilterField.setPlaceholder("Filtrar por usuario...");
         usernameFilterField.setClearButtonVisible(true);
         usernameFilterField.addValueChangeListener(e -> grid.getDataProvider().refreshAll());
+ 
+        // Initialize deleteButton before layout creation
+        deleteButton = new Button("Borrar");
+        deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        deleteButton.setEnabled(false);
 
+        // Setup listeners before layout creation
+        setupButtonListeners();
+ 
 		createGridLayout(splitLayout);
 		createEditorLayout(splitLayout);
 
@@ -125,16 +135,40 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 			}
 		});
 
-		// Configure Form
-		binder = new BeanValidationBinder<>(User.class);
-
-		// Bind fields. This is where you'd define e.g. validation rules
+		// Configure Form fields
+		// Note: binder itself is initialized at the top of the constructor
 		binder.forField(roles)
 			    .withConverter(role -> role != null ? java.util.Set.of(role) : java.util.Collections.<Role>emptySet(),
 			                   set -> set != null && !set.isEmpty() ? set.iterator().next() : null)
 			    .bind(User::getRoles, User::setRoles);
 		binder.bind(userName, "username");
 		binder.bind(password, "password");
+	}
+
+	private void setupButtonListeners() {
+	    deleteButton.addClickListener(e -> {
+            if (this.user != null && this.user.getId() != null) {
+                ConfirmDialog dialog = new ConfirmDialog();
+                dialog.setHeader("Confirmar Borrado");
+                dialog.setText("¿Estás seguro de que quieres borrar este usuario? Esta acción no se puede deshacer.");
+                dialog.setCancelable(true);
+                dialog.setConfirmText("Borrar");
+                dialog.setConfirmButtonTheme("error primary");
+
+                dialog.addConfirmListener(event -> {
+                    try {
+                        userService.delete(this.user.getId());
+                        clearForm();
+                        refreshGrid();
+                        Notification.show("Usuario borrado exitosamente.", 3000, Notification.Position.BOTTOM_START);
+                    } catch (Exception ex) {
+                        Notification.show("Error al borrar el usuario: " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
+                                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                    }
+                });
+                dialog.open();
+            }
+        });
 
 		deleteButton = new Button("Borrar");
         deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
@@ -211,6 +245,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		        ex.printStackTrace();
 		    }
 		});
+	}
 	}
 
 	@Override

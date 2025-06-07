@@ -140,7 +140,9 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
         obsFilter.setPlaceholder("Obs...");
         obsFilter.setClearButtonVisible(true);
         obsFilter.addValueChangeListener(e -> refreshGrid());
-
+ 
+        setupButtonListeners(); // Call to new method
+ 
         createGridLayout(splitLayout);
         createEditorLayout(splitLayout);
 
@@ -197,6 +199,44 @@ public class ProyectosView extends Div implements BeforeEnterObserver {
         // Bind fields. This is where you'd define e.g. validation rules
 
         binder.bindInstanceFields(this);
+    }
+
+    private void setupButtonListeners() {
+        addButton.addClickListener(e -> {
+            clearForm();
+            this.proyecto = new Proyecto();
+            binder.readBean(this.proyecto);
+            if (this.editorLayoutDiv != null) {
+                 this.editorLayoutDiv.setVisible(true);
+            }
+            if (this.deleteButton != null) {
+                this.deleteButton.setEnabled(false);
+            }
+        });
+
+        deleteButton.addClickListener(e -> {
+            if (this.proyecto != null && this.proyecto.getId() != null) {
+                ConfirmDialog dialog = new ConfirmDialog();
+                dialog.setHeader("Confirmar Borrado");
+                dialog.setText("¿Estás seguro de que quieres borrar este proyecto? Esta acción no se puede deshacer.");
+                dialog.setCancelable(true);
+                dialog.setConfirmText("Borrar");
+                dialog.setConfirmButtonTheme("error primary");
+
+                dialog.addConfirmListener(event -> {
+                    try {
+                        proyectoService.delete(this.proyecto.getId());
+                        clearForm();
+                        refreshGrid();
+                        Notification.show("Proyecto borrado exitosamente.", 3000, Notification.Position.BOTTOM_START);
+                    } catch (Exception ex) {
+                        Notification.show("Error al borrar el proyecto: " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
+                                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                    }
+                });
+                dialog.open();
+            }
+        });
 
         cancel.addClickListener(e -> {
             clearForm();
