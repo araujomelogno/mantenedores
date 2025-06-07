@@ -11,6 +11,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog; // Added import
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
@@ -59,6 +60,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 	private final Button cancel = new Button("Cancel");
 	private final Button save = new Button("Save");
 	private Button addButton;
+	private Button deleteButton; // Added deleteButton declaration
 
 	private final BeanValidationBinder<User> binder;
 
@@ -133,6 +135,34 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 			    .bind(User::getRoles, User::setRoles);
 		binder.bind(userName, "username");
 		binder.bind(password, "password");
+
+		deleteButton = new Button("Borrar");
+        deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        deleteButton.setEnabled(false);
+
+        deleteButton.addClickListener(e -> {
+            if (this.user != null && this.user.getId() != null) {
+                ConfirmDialog dialog = new ConfirmDialog(); // Use imported class
+                dialog.setHeader("Confirmar Borrado");
+                dialog.setText("¿Estás seguro de que quieres borrar este usuario? Esta acción no se puede deshacer.");
+                dialog.setCancelable(true);
+                dialog.setConfirmText("Borrar");
+                dialog.setConfirmButtonTheme("error primary");
+
+                dialog.addConfirmListener(event -> {
+                    try {
+                        userService.delete(this.user.getId());
+                        clearForm();
+                        refreshGrid();
+                        Notification.show("Usuario borrado exitosamente.", 3000, Notification.Position.BOTTOM_START);
+                    } catch (Exception ex) {
+                        Notification.show("Error al borrar el usuario: " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
+                                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                    }
+                });
+                dialog.open();
+            }
+        });
 
 		cancel.addClickListener(e -> {
 			clearForm();
@@ -227,7 +257,8 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		buttonLayout.setClassName("button-layout");
 		cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 		save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-		buttonLayout.add(save, cancel);
+		// deleteButton is already themed with LUMO_ERROR in constructor
+		buttonLayout.add(save, deleteButton, cancel);
 		editorLayoutDiv.add(buttonLayout);
 	}
 
@@ -259,6 +290,9 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		binder.readBean(this.user);
 		if (this.editorLayoutDiv != null) { // Check if editorLayoutDiv is initialized
             this.editorLayoutDiv.setVisible(value != null);
+        }
+        if (this.deleteButton != null) { // Comprobar si deleteButton ya fue inicializado
+            this.deleteButton.setEnabled(value != null && value.getId() != null);
         }
 	}
 }
