@@ -2,6 +2,7 @@ package uy.com.bay.cruds.views.useradmin;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.vaadin.lineawesome.LineAwesomeIconUrl;
@@ -10,6 +11,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog; // Added import
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
@@ -53,19 +55,24 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 	private TextField userName;
 	PasswordField password;
 	private ComboBox<Role> roles;
+	private TextField usernameFilterField;
 
 	private final Button cancel = new Button("Cancel");
 	private final Button save = new Button("Save");
 	private Button addButton;
+	private Button deleteButton; // Added deleteButton declaration
 
 	private final BeanValidationBinder<User> binder;
 
 	private User user;
+	private Div editorLayoutDiv; // Added field declaration
 
 	private final UserService userService;
 
 	public UserAdminView(UserService userService) {
 		this.userService = userService;
+		// Initialize binder early
+        this.binder = new BeanValidationBinder<>(User.class);
 		addClassNames("useradmin-view");
 
 		roles = new ComboBox<>("Role");
@@ -77,22 +84,45 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		// Create UI
 		SplitLayout splitLayout = new SplitLayout();
 
+		usernameFilterField = new TextField();
+        usernameFilterField.setPlaceholder("Filtrar por usuario...");
+        usernameFilterField.setClearButtonVisible(true);
+        usernameFilterField.addValueChangeListener(e -> grid.getDataProvider().refreshAll());
+
+        // Initialize deleteButton before layout creation
+        deleteButton = new Button("Borrar");
+        deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        deleteButton.setEnabled(false);
+
+        // Setup listeners before layout creation
+        setupButtonListeners();
+
 		createGridLayout(splitLayout);
 		createEditorLayout(splitLayout);
 
 		add(splitLayout);
 
 		// Configure Grid
-		grid.addColumn("username").setAutoWidth(true);
+		grid.addColumn("username").setHeader("Usuario").setAutoWidth(true);
 		grid.addColumn(user -> {
 		    Set<Role> userRoles = user.getRoles();
 		    if (userRoles != null && !userRoles.isEmpty()) {
 		        return userRoles.iterator().next().name();
 		    }
 		    return "";
-		}).setHeader("Role").setAutoWidth(true);
+		}).setHeader("Rol").setAutoWidth(true);
 
-		grid.setItems(query -> userService.list(VaadinSpringDataHelpers.toSpringPageRequest(query)).stream());
+		grid.setItems(query -> {
+            String filterText = usernameFilterField.getValue() != null ?
+                                usernameFilterField.getValue().trim().toLowerCase() : ""; // Usar "" si es null
+            java.util.stream.Stream<User> userStream = userService.list(VaadinSpringDataHelpers.toSpringPageRequest(query)).stream();
+            if (!filterText.isEmpty()) {
+                userStream = userStream.filter(user ->
+                    user.getUsername() != null && user.getUsername().toLowerCase().contains(filterText)
+                );
+            }
+            return userStream;
+        });
 		grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
 
 		// when a row is selected or deselected, populate form
@@ -105,16 +135,40 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 			}
 		});
 
-		// Configure Form
-		binder = new BeanValidationBinder<>(User.class);
-
-		// Bind fields. This is where you'd define e.g. validation rules
+		// Configure Form fields
+		// Note: binder itself is initialized at the top of the constructor
 		binder.forField(roles)
 			    .withConverter(role -> role != null ? java.util.Set.of(role) : java.util.Collections.<Role>emptySet(),
 			                   set -> set != null && !set.isEmpty() ? set.iterator().next() : null)
 			    .bind(User::getRoles, User::setRoles);
 		binder.bind(userName, "username");
 		binder.bind(password, "password");
+	}
+
+	private void setupButtonListeners() {
+	    deleteButton.addClickListener(e -> {
+            if (this.user != null && this.user.getId() != null) {
+                ConfirmDialog dialog = new ConfirmDialog();
+                dialog.setHeader("Confirmar Borrado");
+                dialog.setText("¿Estás seguro de que quieres borrar este usuario? Esta acción no se puede deshacer.");
+                dialog.setCancelable(true);
+                dialog.setConfirmText("Borrar");
+                dialog.setConfirmButtonTheme("error primary");
+
+                dialog.addConfirmListener(event -> {
+                    try {
+                        userService.delete(this.user.getId());
+                        clearForm();
+                        refreshGrid();
+                        Notification.show("Usuario borrado exitosamente.", 3000, Notification.Position.BOTTOM_START);
+                    } catch (Exception ex) {
+                        Notification.show("Error al borrar el usuario: " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
+                                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                    }
+                });
+                dialog.open();
+            }
+        });
 
 		cancel.addClickListener(e -> {
 			clearForm();
@@ -164,6 +218,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		    }
 		});
 	}
+	}
 
 	@Override
 	public void beforeEnter(BeforeEnterEvent event) {
@@ -185,8 +240,8 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 	}
 
 	private void createEditorLayout(SplitLayout splitLayout) {
-		Div editorLayoutDiv = new Div();
-		editorLayoutDiv.setClassName("editor-layout");
+		this.editorLayoutDiv = new Div(); // Changed to use the class field
+		this.editorLayoutDiv.setClassName("editor-layout");
 
 		Div editorDiv = new Div();
 		editorDiv.setClassName("editor");
@@ -198,9 +253,10 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		formLayout.add(userName, password, roles);
 
 		editorDiv.add(formLayout);
-		createButtonLayout(editorLayoutDiv);
+		createButtonLayout(this.editorLayoutDiv);
 
-		splitLayout.addToSecondary(editorLayoutDiv);
+		splitLayout.addToSecondary(this.editorLayoutDiv);
+		this.editorLayoutDiv.setVisible(false); // Set initial visibility
 	}
 
 	private void createButtonLayout(Div editorLayoutDiv) {
@@ -208,7 +264,8 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		buttonLayout.setClassName("button-layout");
 		cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 		save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-		buttonLayout.add(save, cancel);
+		// deleteButton is already themed with LUMO_ERROR in constructor
+		buttonLayout.add(save, deleteButton, cancel);
 		editorLayoutDiv.add(buttonLayout);
 	}
 
@@ -217,7 +274,7 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 		wrapper.setClassName("grid-wrapper");
 		
 		HorizontalLayout topBar = new HorizontalLayout();
-		topBar.add(addButton);
+		topBar.add(usernameFilterField, addButton);
 		topBar.setWidthFull();
 		topBar.setJustifyContentMode(JustifyContentMode.START);
 		wrapper.add(topBar);
@@ -238,6 +295,11 @@ public class UserAdminView extends Div implements BeforeEnterObserver {
 	private void populateForm(User value) {
 		this.user = value;
 		binder.readBean(this.user);
-
+		if (this.editorLayoutDiv != null) { // Check if editorLayoutDiv is initialized
+            this.editorLayoutDiv.setVisible(value != null);
+        }
+        if (this.deleteButton != null) { // Comprobar si deleteButton ya fue inicializado
+            this.deleteButton.setEnabled(value != null && value.getId() != null);
+        }
 	}
 }

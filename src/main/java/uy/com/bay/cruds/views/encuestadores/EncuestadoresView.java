@@ -3,6 +3,7 @@ package uy.com.bay.cruds.views.encuestadores;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog; // Added import
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
@@ -23,6 +24,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.spring.data.VaadinSpringDataHelpers;
 import jakarta.annotation.security.PermitAll;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.vaadin.lineawesome.LineAwesomeIconUrl;
 import uy.com.bay.cruds.data.Encuestador;
@@ -43,21 +45,89 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
     private TextField lastName;
     private TextField ci;
 
+    private Button addButton;
+    private TextField firstNameFilter;
+    private TextField lastNameFilter;
+    private TextField ciFilter;
+
     private final Button cancel = new Button("Cancel");
     private final Button save = new Button("Save");
+    private Button deleteButton; // Added deleteButton declaration
 
     private final BeanValidationBinder<Encuestador> binder;
 
     private Encuestador encuestador;
+    private Div editorLayoutDiv; // Added field declaration
 
     private final EncuestadorService encuestadorService;
 
     public EncuestadoresView(EncuestadorService encuestadorService) {
         this.encuestadorService = encuestadorService;
+        this.binder = new BeanValidationBinder<>(Encuestador.class); // Moved initialization here
         addClassNames("encuestadores-view");
 
         // Create UI
         SplitLayout splitLayout = new SplitLayout();
+
+        addButton = new Button("Agregar Encuestador");
+        // addButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY); // Estilo opcional
+        addButton.addClickListener(e -> {
+            clearForm(); // Esto llamará a populateForm(null), ocultando el editor.
+            this.encuestador = new Encuestador();
+            binder.readBean(this.encuestador); // Prepara el formulario para el nuevo encuestador.
+                                             // binder.readBean no debe afectar la visibilidad.
+            if (this.editorLayoutDiv != null) {
+                 this.editorLayoutDiv.setVisible(true); // Mostrar explícitamente el editor para la nueva entidad.
+            }
+            if (this.deleteButton != null) {
+                this.deleteButton.setEnabled(false);
+            }
+        });
+
+        deleteButton = new Button("Borrar");
+        deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        deleteButton.setEnabled(false);
+
+        deleteButton.addClickListener(e -> {
+            if (this.encuestador != null && this.encuestador.getId() != null) {
+                ConfirmDialog dialog = new ConfirmDialog(); // Use imported class
+                dialog.setHeader("Confirmar Borrado");
+                dialog.setText("¿Estás seguro de que quieres borrar este encuestador? Esta acción no se puede deshacer.");
+                dialog.setCancelable(true);
+                dialog.setConfirmText("Borrar");
+                dialog.setConfirmButtonTheme("error primary");
+
+                dialog.addConfirmListener(event -> {
+                    try {
+                        encuestadorService.delete(this.encuestador.getId());
+                        clearForm();
+                        refreshGrid();
+                        Notification.show("Encuestador borrado exitosamente.", 3000, Notification.Position.BOTTOM_START);
+                    } catch (Exception ex) {
+                        Notification.show("Error al borrar el encuestador: " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
+                                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                    }
+                });
+                dialog.open();
+            }
+        });
+
+        firstNameFilter = new TextField();
+        firstNameFilter.setPlaceholder("Nombre...");
+        firstNameFilter.setClearButtonVisible(true);
+        firstNameFilter.addValueChangeListener(e -> refreshGrid()); // Asume que refreshGrid() llama a dataProvider.refreshAll()
+
+        lastNameFilter = new TextField();
+        lastNameFilter.setPlaceholder("Apellido...");
+        lastNameFilter.setClearButtonVisible(true);
+        lastNameFilter.addValueChangeListener(e -> refreshGrid());
+
+        ciFilter = new TextField();
+        ciFilter.setPlaceholder("CI...");
+        ciFilter.setClearButtonVisible(true);
+        ciFilter.addValueChangeListener(e -> refreshGrid());
+
+        setupButtonListeners(); // Call to new method
 
         createGridLayout(splitLayout);
         createEditorLayout(splitLayout);
@@ -65,10 +135,30 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
         add(splitLayout);
 
         // Configure Grid
-        grid.addColumn("firstName").setAutoWidth(true);
-        grid.addColumn("lastName").setAutoWidth(true);
-        grid.addColumn("ci").setAutoWidth(true);
-        grid.setItems(query -> encuestadorService.list(VaadinSpringDataHelpers.toSpringPageRequest(query)).stream());
+        grid.addColumn("firstName").setHeader("Nombre").setAutoWidth(true);
+        grid.addColumn("lastName").setHeader("Apellido").setAutoWidth(true);
+        grid.addColumn("ci").setHeader("CI").setAutoWidth(true);
+
+        grid.setItems(query -> {
+            String fnameFilter = firstNameFilter.getValue() != null ? firstNameFilter.getValue().trim().toLowerCase() : "";
+            String lnameFilter = lastNameFilter.getValue() != null ? lastNameFilter.getValue().trim().toLowerCase() : "";
+            String ciValFilter = ciFilter.getValue() != null ? ciFilter.getValue().trim().toLowerCase() : "";
+
+            // Obtener el stream del servicio
+            java.util.stream.Stream<Encuestador> stream = encuestadorService.list(VaadinSpringDataHelpers.toSpringPageRequest(query)).stream();
+
+            // Aplicar filtros si hay texto en los campos de filtro
+            if (!fnameFilter.isEmpty()) {
+                stream = stream.filter(enc -> enc.getFirstName() != null && enc.getFirstName().toLowerCase().contains(fnameFilter));
+            }
+            if (!lnameFilter.isEmpty()) {
+                stream = stream.filter(enc -> enc.getLastName() != null && enc.getLastName().toLowerCase().contains(lnameFilter));
+            }
+            if (!ciValFilter.isEmpty()) {
+                stream = stream.filter(enc -> enc.getCi() != null && enc.getCi().toLowerCase().contains(ciValFilter));
+            }
+            return stream;
+        });
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
 
         // when a row is selected or deselected, populate form
@@ -82,11 +172,49 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
         });
 
         // Configure Form
-        binder = new BeanValidationBinder<>(Encuestador.class);
+        // binder = new BeanValidationBinder<>(Encuestador.class); // Removed from here
 
         // Bind fields. This is where you'd define e.g. validation rules
 
         binder.bindInstanceFields(this);
+    }
+
+    private void setupButtonListeners() {
+        addButton.addClickListener(e -> {
+            clearForm();
+            this.encuestador = new Encuestador();
+            binder.readBean(this.encuestador);
+            if (this.editorLayoutDiv != null) {
+                 this.editorLayoutDiv.setVisible(true);
+            }
+            if (this.deleteButton != null) {
+                this.deleteButton.setEnabled(false);
+            }
+        });
+
+        deleteButton.addClickListener(e -> {
+            if (this.encuestador != null && this.encuestador.getId() != null) {
+                ConfirmDialog dialog = new ConfirmDialog();
+                dialog.setHeader("Confirmar Borrado");
+                dialog.setText("¿Estás seguro de que quieres borrar este encuestador? Esta acción no se puede deshacer.");
+                dialog.setCancelable(true);
+                dialog.setConfirmText("Borrar");
+                dialog.setConfirmButtonTheme("error primary");
+
+                dialog.addConfirmListener(event -> {
+                    try {
+                        encuestadorService.delete(this.encuestador.getId());
+                        clearForm();
+                        refreshGrid();
+                        Notification.show("Encuestador borrado exitosamente.", 3000, Notification.Position.BOTTOM_START);
+                    } catch (Exception ex) {
+                        Notification.show("Error al borrar el encuestador: " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
+                                .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                    }
+                });
+                dialog.open();
+            }
+        });
 
         cancel.addClickListener(e -> {
             clearForm();
@@ -135,8 +263,8 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
     }
 
     private void createEditorLayout(SplitLayout splitLayout) {
-        Div editorLayoutDiv = new Div();
-        editorLayoutDiv.setClassName("editor-layout");
+        this.editorLayoutDiv = new Div(); // Changed to use the class field
+        this.editorLayoutDiv.setClassName("editor-layout");
 
         Div editorDiv = new Div();
         editorDiv.setClassName("editor");
@@ -149,9 +277,10 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
         formLayout.add(firstName, lastName, ci);
 
         editorDiv.add(formLayout);
-        createButtonLayout(editorLayoutDiv);
+        createButtonLayout(this.editorLayoutDiv);
 
-        splitLayout.addToSecondary(editorLayoutDiv);
+        splitLayout.addToSecondary(this.editorLayoutDiv);
+        this.editorLayoutDiv.setVisible(false); // Set initial visibility
     }
 
     private void createButtonLayout(Div editorLayoutDiv) {
@@ -159,15 +288,28 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
         buttonLayout.setClassName("button-layout");
         cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        buttonLayout.add(save, cancel);
+		buttonLayout.add(save, deleteButton, cancel);
         editorLayoutDiv.add(buttonLayout);
     }
 
     private void createGridLayout(SplitLayout splitLayout) {
         Div wrapper = new Div();
         wrapper.setClassName("grid-wrapper");
-        splitLayout.addToPrimary(wrapper);
+
+        HorizontalLayout topBar = new HorizontalLayout();
+        topBar.setWidthFull();
+        // topBar.setSpacing(true); // Opcional para espaciado
+        topBar.add(firstNameFilter, lastNameFilter, ciFilter, addButton);
+        // Para alinear el botón a la derecha (más avanzado, podría requerir un Div espaciador o CSS)
+        // Ejemplo simple para empujar el botón:
+        // Div spacer = new Div();
+        // spacer.getStyle().set("flex-grow", "1");
+        // topBar.add(firstNameFilter, lastNameFilter, ciFilter, spacer, addButton);
+        // O simplemente dejarlos en orden.
+
+        wrapper.add(topBar); // Añadir topBar al wrapper ANTES del grid
         wrapper.add(grid);
+        splitLayout.addToPrimary(wrapper);
     }
 
     private void refreshGrid() {
@@ -182,6 +324,11 @@ public class EncuestadoresView extends Div implements BeforeEnterObserver {
     private void populateForm(Encuestador value) {
         this.encuestador = value;
         binder.readBean(this.encuestador);
-
+        if (this.editorLayoutDiv != null) {
+            this.editorLayoutDiv.setVisible(value != null);
+        }
+        if (this.deleteButton != null) {
+            this.deleteButton.setEnabled(value != null && value.getId() != null);
+        }
     }
 }
