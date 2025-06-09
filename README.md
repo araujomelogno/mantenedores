@@ -65,3 +65,27 @@ Once the Docker image is correctly built, you can test it locally using
 ```
 docker run -p 8080:8080 cruds:latest
 ```
+
+## Scheduled Tasks
+
+### Odoo Project Synchronization
+
+The application includes a scheduled task (`OdooProjectSyncTask`) that runs every hour to fetch projects from an Odoo instance and save new ones into the local database.
+
+To enable this functionality, you need to configure the Odoo connection details in `src/main/resources/application.properties`:
+
+```properties
+# ODOO Configuration for Hourly Project Sync
+# These properties are used by the OdooProjectSyncTask to connect to your Odoo instance.
+# Ensure these are correctly set for the OdooProjectSyncTask to function.
+# odoo.url: The full URL of your Odoo instance (e.g., http://localhost:8069).
+# odoo.db: The name of your Odoo database.
+# odoo.username: The username for connecting to Odoo.
+# odoo.password: The API key or password for the Odoo user.
+odoo.url=your_odoo_instance_url
+odoo.db=your_odoo_database
+odoo.username=your_odoo_username
+odoo.password=your_odoo_api_key_or_password
+```
+
+This task interacts with Odoo using XML-RPC, leveraging the Apache XML-RPC client library (`org.apache.xmlrpc:xmlrpc-client`) which is included in `pom.xml`.

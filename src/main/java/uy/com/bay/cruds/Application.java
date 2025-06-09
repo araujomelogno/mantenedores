@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.sql.init.SqlDataSourceScriptDatabaseInitializer;
 import org.springframework.boot.autoconfigure.sql.init.SqlInitializationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableScheduling; // Import this
 import uy.com.bay.cruds.data.SamplePersonRepository;
 
 /**
@@ -19,6 +20,7 @@ import uy.com.bay.cruds.data.SamplePersonRepository;
  */
 @SpringBootApplication
 @Theme(value = "cruds")
+@EnableScheduling // Add this annotation
 public class Application implements AppShellConfigurator {
 
     public static void main(String[] args) {
