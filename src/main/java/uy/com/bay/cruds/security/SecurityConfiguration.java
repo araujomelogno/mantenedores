@@ -16,10 +16,10 @@ import uy.com.bay.cruds.views.login.LoginView;
 @Configuration
 public class SecurityConfiguration extends VaadinWebSecurity {
 
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return NoOpPasswordEncoder.getInstance();
-	}
+		@Bean
+		public PasswordEncoder passwordEncoder() {
+			return NoOpPasswordEncoder.getInstance();
+		}
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {

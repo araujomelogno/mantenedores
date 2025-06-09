@@ -24,8 +24,7 @@ public class User extends AbstractEntity {
 	public void setPassword(String password) {
 		this.password = password;
 	}
-	@JsonIgnore
-    private String hashedPassword;
+	 
     @Enumerated(EnumType.STRING)
     @ElementCollection(fetch = FetchType.EAGER)
     private Set<Role> roles;
@@ -45,12 +44,7 @@ public class User extends AbstractEntity {
     public void setName(String name) {
         this.name = name;
     }
-    public String getHashedPassword() {
-        return hashedPassword;
-    }
-    public void setHashedPassword(String hashedPassword) {
-        this.hashedPassword = hashedPassword;
-    }
+    
     public Set<Role> getRoles() {
         return roles;
     }
