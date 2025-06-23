@@ -32,6 +32,7 @@ public class OdooService {
         try {
             XmlRpcClientConfigImpl commonConfig = new XmlRpcClientConfigImpl();
             commonConfig.setServerURL(new URL(odooConfig.getUrl() + "/xmlrpc/2/common"));
+            logger.info("Odoo Common API URL configured: {}", commonConfig.getServerURL());
             commonClient = new XmlRpcClient();
             commonClient.setConfig(commonConfig);
             // It's good practice to set connection and read timeouts
@@ -41,6 +42,7 @@ public class OdooService {
 
             XmlRpcClientConfigImpl objectConfig = new XmlRpcClientConfigImpl();
             objectConfig.setServerURL(new URL(odooConfig.getUrl() + "/xmlrpc/2/object"));
+            logger.info("Odoo Object API URL configured: {}", objectConfig.getServerURL());
             objectClient = new XmlRpcClient();
             objectClient.setConfig(objectConfig);
             // It's good practice to set connection and read timeouts
